@@ -1,0 +1,117 @@
+[tool.ruff]               #игнорирует данные файлы и не форматирует их
+exclude = [".venv",
+".gitignore",
+".__pycache__"
+
+]
+
+fix = true # включает автоматические исправления
+
+
+line-length = 88 # длина строки по умолчанию
+
+show-fixes = true # показывает все исправленные нарушения.
+
+unsafe-fixes = true #разрешить применение небезопасных измнений, подсказка включена
+
+[tool.ruff.analyze]
+preview = true # Следует ли включить режим предварительного просмотра. 
+                #Если режим предварительного просмотра включен, Ruff будет отображать нестабильные команды.
+
+[tool.ruff.format]
+docstring-code-format = true # форматирование кода
+docstring-code-line-length = 60 #ограничение длины кода 
+exclude = [".venv",
+           "__pycache__",
+           ".gitignore",
+           "README.md"
+
+
+]
+
+# Use tabs instead of 4 space indentation.
+indent-style = "space"
+
+
+# Prefer single quotes over double quotes.
+quote-style = "double" 
+line-ending = "auto"
+
+skip-magic-trailing-comma = false #игнорирование волшебной запятой
+
+[tool.ruff.lint]
+preview = true #режим предварительного просмотра
+# Настройки линтера
+select = [
+    "A",   # flake8-builtins
+    "ARG", # flake8-unused-arguments
+    "ASYNC", # flake8-async
+    "B",   # flake8-bugbear
+    "BLE", # flake8-blind-except
+    "C4",  # flake8-comprehensions
+    "C90", # mccabe
+    "DTZ", # flake8-datetimez
+    "E",   # pycodestyle errors
+    "EM",  # flake8-errmsg
+    "F",   # Pyflakes
+    "FA",  # flake8-future-annotations
+    "FIX", # Ruff fix
+    "FBT", # flake8-boolean-trap
+    "G",   # flake8-logging
+    "I",   # isort
+    "ICN", # flake8-import-conventions
+    "INP", # flake8-no-pep420
+    "INT", # flake8-gettext
+    "ISC", # flake8-implicit-str-concat
+    "N",   # pep8-naming
+    "PD",  # pandas-vet
+    "PGH", # pygrep-hooks
+    "PIE", # flake8-pie
+    "PL",  # pylint
+    "PT",  # flake8-pytest-style
+    "Q",   # flake8-quotes
+    "RET", # flake8-return
+    "RSE", # flake8-raise
+    "RUF", # Ruff-specific rules
+    "S",   # flake8-bandit
+    "SIM", # flake8-simplify
+    "SLF", # flake8-self
+    "SLOT", # flake8-slots
+    "T10", # flake8-debugger
+    "T20", # flake8-print
+    "TID", # flake8-tidy-imports
+    "TRY", # tryceratops
+    "UP",  # pyupgrade
+    "W",   # pycodestyle warnings
+    "YTT", # flake8-2020
+]
+ignore = [
+    "E501",  # line too long - обрабатывается formatter'ом
+
+    "B008",  # do not perform function calls in argument defaults (иногда нужно)
+    "B009",  # do not call getattr with a constant attribute (иногда нужно)
+    "B010",  # do not call setattr with a constant attribute (иногда нужно)
+    "D",     # pydocstyle - можем включить позже
+    "COM812", # trailing comma missing - управляется formatter'ом
+    "COM818", # trailing comma on bare tuple prohibited
+    "W191",
+    "W291",
+    "W293",
+    "W605",
+    "RUF001",
+    "RUF002",
+    "RUF003",
+
+]
+
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14.2",
+]
+# Настройка правил для кавычек
+[tool.ruff.lint.flake8-quotes]
+inline-quotes = "double"      # предпочитаем двойные кавычки
+multiline-quotes = "double"   # многострочные строки в двойных кавычках
+docstring-quotes = "double"   # docstring в двойных кавычках
+avoid-escape = true           # изменять кавычки, чтобы избежать экранирования
