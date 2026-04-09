@@ -1,6 +1,7 @@
 # Основной файл для запуска тг-бота
 import logging
 import os
+import traceback
 
 from dotenv import load_dotenv
 from telegram import Update
@@ -14,6 +15,7 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
+from telegram.request import HTTPXRequest
 
 from handlers import (
     DAY,
@@ -72,6 +74,8 @@ logger = logging.getLogger(__name__)
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик ошибок."""
     # Используем %-форматирование вместо f-строки для ленивого логирования
+    tb_list = traceback.format_exception(None, context.error, context.error.__traceback__)
+    "".join(tb_list)
     logger.error("Exception while handling update: %s", context.error)
 
     if isinstance(context.error, BadRequest):
@@ -88,6 +92,9 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def main() -> None:
     """Запуск бота."""
     application = Application.builder().token(BOT_TOKEN1).build()
+     # Создаём кастомный request с большими таймаутами (connect=20 сек, read=60 сек)
+    request = HTTPXRequest(connect_timeout=20.0, read_timeout=60.0, write_timeout=20.0)
+    application = Application.builder().token(BOT_TOKEN1).request(request).build()
 
     application.add_error_handler(error_handler)
     application.add_handler(CommandHandler("start", start))
