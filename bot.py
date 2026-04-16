@@ -1,11 +1,8 @@
-# Основной файл для запуска тг-бота
 import logging
 import os
-import traceback
 
 from dotenv import load_dotenv
 from telegram import Update
-from telegram.error import BadRequest
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
@@ -18,10 +15,11 @@ from telegram.ext import (
 from telegram.request import HTTPXRequest
 
 from handlers import (
-    DAY,
-    NAME,
-    PHONE,
-    appointment,
+    AWAITING_COMMENT,
+    AWAITING_NAME,
+    AWAITING_PHONE,
+    AWAITING_SERVICE,
+    appointment_request,
     button_appointment,
     button_back,
     button_diagnostic,
@@ -43,22 +41,19 @@ from handlers import (
     button_specialization,
     button_treatment,
     button_treatment_detail,
-    cancel_appointment,
+    cancel_appointment_form,
     contacts,
     cost_services,
     directions_main,
-    get_name,
-    get_phone,
-    handle_back_from_appointment,
+    handle_survey_global,
     leave_review,
     lectures_courses,
     main_menu_from_survey,
+    process_appointment_input,
     questions_consultation,
-    select_day,
     services_main,
     specialists_main,
     start,
-    survey_response,
     website,
     website_main,
 )
@@ -66,46 +61,55 @@ from handlers import (
 load_dotenv()
 BOT_TOKEN1 = os.getenv("BOT_TOKEN1")
 
-# Включим логирование, чтобы видеть ошибки
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработчик ошибок."""
-    # Используем %-форматирование вместо f-строки для ленивого логирования
-    tb_list = traceback.format_exception(None, context.error, context.error.__traceback__)
-    "".join(tb_list)
-    logger.error("Exception while handling update: %s", context.error)
-
-    if isinstance(context.error, BadRequest):
-        if "Inline keyboard expected" in str(context.error):
-            logger.warning("Ignored: Inline keyboard expected error")
-        elif "Can't parse entities" in str(context.error):
-            logger.warning("Ignored: Markdown parsing error")
-        return
-
+    logger.error("Exception: %s", context.error, exc_info=True)
     if update and update.effective_message:
         await update.effective_message.reply_text("Произошла ошибка. Попробуйте еще раз.")
 
 
-def main() -> None:
-    """Запуск бота."""
-    application = Application.builder().token(BOT_TOKEN1).build()
-     # Создаём кастомный request с большими таймаутами (connect=20 сек, read=60 сек)
-    request = HTTPXRequest(connect_timeout=20.0, read_timeout=60.0, write_timeout=20.0)
+def main():
+    request = HTTPXRequest(connect_timeout=20.0, read_timeout=60.0)
     application = Application.builder().token(BOT_TOKEN1).request(request).build()
-
     application.add_error_handler(error_handler)
+
     application.add_handler(CommandHandler("start", start))
 
-    # Обработчики текстовых сообщений из главного меню
-    application.add_handler(MessageHandler(filters.Regex("^Специалисты$"), specialists_main))
-    application.add_handler(MessageHandler(filters.Regex("^Услуги$"), services_main))
-    application.add_handler(MessageHandler(filters.Regex("^Направления$"), directions_main))
-    application.add_handler(MessageHandler(filters.Regex("^Наш сайт$"), website_main))
+    # ConversationHandler для формы записи с возможностью отмены
+    appointment_conv_handler = ConversationHandler(
+        entry_points=[
+            MessageHandler(filters.Regex("^Записаться$"), appointment_request),
+            CallbackQueryHandler(button_appointment, pattern="^appointment_")
+        ],
+        states={
+            AWAITING_NAME: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, process_appointment_input),
+                CommandHandler("cancel", cancel_appointment_form)
+            ],
+            AWAITING_PHONE: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, process_appointment_input),
+                CommandHandler("cancel", cancel_appointment_form)
+            ],
+            AWAITING_SERVICE: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, process_appointment_input),
+                CommandHandler("cancel", cancel_appointment_form)
+            ],
+            AWAITING_COMMENT: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, process_appointment_input),
+                CommandHandler("cancel", cancel_appointment_form)
+            ],
+        },
+        fallbacks=[
+            CommandHandler("cancel", cancel_appointment_form),
+            MessageHandler(filters.Regex("^Отмена$"), cancel_appointment_form)
+        ],
+    )
+    application.add_handler(appointment_conv_handler)
 
-    # Обработчики нажатий на inline-кнопки
+    # Inline-обработчики
     application.add_handler(CallbackQueryHandler(button_doctor, pattern="^doctor_"))
     application.add_handler(CallbackQueryHandler(button_service_specialists, pattern="^service_specialists$"))
     application.add_handler(CallbackQueryHandler(button_specialization, pattern="^specialization_"))
@@ -116,64 +120,48 @@ def main() -> None:
     application.add_handler(CallbackQueryHandler(button_direction, pattern="^direction_"))
     application.add_handler(CallbackQueryHandler(button_direction_detail, pattern="^detail_direction_"))
     application.add_handler(CallbackQueryHandler(button_direction_more_detail, pattern="^more_detail_direction_"))
-    application.add_handler(CallbackQueryHandler(button_appointment, pattern="^appointment_"))
-    application.add_handler(CallbackQueryHandler(button_back, pattern="^back_"))
-
-    # Обработчики для новых кнопок услуг
     application.add_handler(CallbackQueryHandler(button_service_health_programs, pattern="^service_health_programs$"))
     application.add_handler(CallbackQueryHandler(button_service_diagnostics, pattern="^service_diagnostics$"))
     application.add_handler(CallbackQueryHandler(button_service_what_we_treat, pattern="^service_what_we_treat$"))
-
-    # Обработчики для диагностики
     application.add_handler(CallbackQueryHandler(button_diagnostic, pattern="^diagnostic_"))
     application.add_handler(CallbackQueryHandler(button_diagnostic_detail, pattern="^detail_diagnostic_"))
-
-    # Обработчики для программ здоровья
     application.add_handler(CallbackQueryHandler(button_health_program, pattern="^health_program_"))
     application.add_handler(CallbackQueryHandler(button_health_program_detail, pattern="^detail_health_program_"))
-
-    # Обработчики для раздела "Чем мы лечим"
     application.add_handler(CallbackQueryHandler(button_treatment, pattern="^treatment_"))
     application.add_handler(CallbackQueryHandler(button_treatment_detail, pattern="^detail_treatment_"))
+    application.add_handler(CallbackQueryHandler(button_back, pattern="^back_"))
 
-    # Обработчики текстовых сообщений из опроса
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, survey_response))
+    # Глобальный обработчик текста
+    async def global_text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if context.user_data.get("appointment_step") is not None:
+            return
+        text = update.message.text
+        if text == "Специалисты":
+            await specialists_main(update, context)
+        elif text == "Услуги":
+            await services_main(update, context)
+        elif text == "Направления":
+            await directions_main(update, context)
+        elif text == "Наш сайт":
+            await website_main(update, context)
+        elif text == "Контакты":
+            await contacts(update, context)
+        elif text == "Оставить отзыв":
+            await leave_review(update, context)
+        elif text == "Главное меню":
+            await main_menu_from_survey(update, context)
+        elif text == "Стоимость услуг":
+            await cost_services(update, context)
+        elif text == "Лекции и курсы":
+            await lectures_courses(update, context)
+        elif text == "Вопросы по лечению и консультации":
+            await questions_consultation(update, context)
+        elif text == "Наш сайт" in text:
+            await website(update, context)
+        else:
+            await handle_survey_global(update, context)
 
-    # Обработчики для кнопок расширенного опроса
-    application.add_handler(MessageHandler(filters.Regex("^Наш сайт$"), website))
-    application.add_handler(MessageHandler(filters.Regex("^Контакты$"), contacts))
-    application.add_handler(MessageHandler(filters.Regex("^Оставить отзыв$"), leave_review))
-    application.add_handler(MessageHandler(filters.Regex("^Записаться$"), appointment))
-    application.add_handler(MessageHandler(filters.Regex("^Главное меню$"), main_menu_from_survey))
-    application.add_handler(MessageHandler(filters.Regex("^Стоимость услуг$"), cost_services))
-    application.add_handler(MessageHandler(filters.Regex("^Лекции и курсы$"), lectures_courses))
-    application.add_handler(MessageHandler(filters.Regex("^Вопросы по лечению и консультации$"), questions_consultation))
-
-    appointment_conv_handler = ConversationHandler(
-        entry_points=[
-            CallbackQueryHandler(button_appointment, pattern="^appointment_")
-        ],
-        states={
-            DAY: [
-                CallbackQueryHandler(select_day, pattern="^day_"),
-                CallbackQueryHandler(handle_back_from_appointment, pattern="^back_appointment")
-            ],
-            NAME: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, get_name),
-                CallbackQueryHandler(handle_back_from_appointment, pattern="^back_appointment")
-            ],
-            PHONE: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone),
-                CallbackQueryHandler(handle_back_from_appointment, pattern="^back_appointment")
-            ],
-        },
-        fallbacks=[
-            CommandHandler("cancel", cancel_appointment),
-            MessageHandler(filters.ALL, cancel_appointment)
-        ],
-        per_message=False
-    )
-    application.add_handler(appointment_conv_handler)
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, global_text_handler))
 
     application.run_polling()
 
