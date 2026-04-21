@@ -1,5 +1,7 @@
 import logging
 import os
+import sys
+import asyncio
 
 from dotenv import load_dotenv
 from telegram import Update
@@ -64,6 +66,10 @@ BOT_TOKEN1 = os.getenv("BOT_TOKEN1")
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
+
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.error("Exception: %s", context.error, exc_info=True)

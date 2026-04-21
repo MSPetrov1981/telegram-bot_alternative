@@ -412,14 +412,7 @@
         }
       }
     },
-    "naturopat": {
-      "title": "Натуропаты",
-      "doctors": {
-        " ": {
-          "name": " "
-        }
-      }
-    },
+    
     "hynekologist": {
       "title": "Гинекологи",
       "doctors": {
@@ -487,28 +480,7 @@
         }
       }
     },
-    "dermatolog": {
-      "title": "Дерматологи",
-      "doctors": {
-        " ": {
-          "name": " ",
-          "specialization": " ",
-          "description": " ",
-          "photo": " "
-        }
-      }
-    },
-    "ekg": {
-      "title": "ЭКГ",
-      "doctors": {
-        " ": {
-          "name": " ",
-          "specialization": " ",
-          "description": " ",
-          "photo": " "
-        }
-      }
-    },
+    
     "hyrudo": {
       "title": "Гирудотерапевт",
       "doctors": {
@@ -520,17 +492,7 @@
         }
       }
     },
-    "aroma": {
-      "title": "Ароматерапевт",
-      "doctors": {
-        " ": {
-          "name": " ",
-          "specialization": " ",
-          "description": " ",
-          "photo": " "
-        }
-      }
-    },
+    
     "logoped": {
       "title": "Логопеды",
       "doctors": {
